@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sanciones Internas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    color:#333;
+    padding:20px;
+  }
+
+  h1 {
+    text-align:center;
+    color:#ff6f00;
+  }
+
+  .tabs {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:20px;
+  }
+
+  .tabs button {
+    padding:8px 16px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    background:#ff6f00;
+    color:white;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .tabs button.active {
+    background:#e65c00;
+  }
+
+  .tab-content {
+    max-width:900px;
+    margin:0 auto;
+  }
+
+  .form-group {
+    margin-bottom:12px;
+  }
+
+  .form-group label {
+    font-weight:600;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    margin-top:4px;
+    font-size:14px;
+  }
+
+  .form-group textarea {
+    resize:vertical;
+  }
+
+  button.submit-btn {
+    background:#28a745;
+    color:white;
+    font-weight:600;
+    padding:10px 16px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    transition:0.25s;
+  }
+
+  button.submit-btn:hover {
+    background:#218838;
+  }
+
+  .sancion-card {
+    background:white;
+    padding:16px 20px;
+    border-radius:12px;
+    margin-bottom:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    transition:0.2s;
+  }
+
+  .sancion-card:hover {
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);
+  }
+
+  .sancion-card p {
+    margin:4px 0;
+  }
+
+  .label {
+    font-weight:600;
+    color:#555;
+  }
+
+  .actions {
+    margin-top:8px;
+    display:flex;
+    gap:8px;
+  }
+
+  .actions button {
+    padding:6px 12px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .actions button.delete {
+    background:#dc3545;
+    color:white;
+  }
+
+  .actions button.note {
+    background:#ffc107;
+    color:white;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Sanciones Internas</h1>
+
+<div class="tabs">
+  <button id="tabNuevo" class="active">Nuevo</button>
+  <button id="tabRegistros">Registros</button>
+</div>
+
+<div class="tab-content" id="nuevoTab">
+  <div class="form-group">
+    <label>Tipo de Sanción</label>
+    <select id="tipoSancion">
+      <option value="">Seleccione</option>
+      <option value="Tribunal">Usuario del Tribunal</option>
+      <option value="Externo">Usuario Externo</option>
+    </select>
+  </div>
+
+  <!-- Sanción Interna -->
+  <div id="formTribunal" style="display:none;">
+    <div class="form-group">
+      <label>Usuario Tribunal</label>
+      <select id="usuarioTribunal"></select>
+    </div>
+    <div class="form-group">
+      <label>Motivo</label>
+      <input type="text" id="motivoTribunal">
+    </div>
+    <div class="form-group">
+      <label>Artículo (Opcional)</label>
+      <input type="text" id="articuloTribunal">
+    </div>
+    <div class="form-group">
+      <label>Notas (Opcional)</label>
+      <textarea id="notasTribunal" rows="2"></textarea>
+    </div>
+  </div>
+
+  <!-- Sanción Externa -->
+  <div id="formExterno" style="display:none;">
+    <div class="form-group">
+      <label>Nombre Usuario</label>
+      <input type="text" id="nombreExterno">
+    </div>
+    <div class="form-group">
+      <label>DNI</label>
+      <input type="text" id="dniExterno">
+    </div>
+    <div class="form-group">
+      <label>Motivo</label>
+      <input type="text" id="motivoExterno">
+    </div>
+    <div class="form-group">
+      <label>Artículo (Opcional)</label>
+      <input type="text" id="articuloExterno">
+    </div>
+    <div class="form-group">
+      <label>Notas (Opcional)</label>
+      <textarea id="notasExterno" rows="2"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Facción Perteneciente</label>
+      <input type="text" id="faccionExterno">
+    </div>
+    <div class="form-group">
+      <label>Placa</label>
+      <input type="text" id="placaExterno">
+    </div>
+  </div>
+
+  <button class="submit-btn" id="guardarSancion">Guardar Sanción</button>
+</div>
+
+<div class="tab-content" id="registrosTab" style="display:none;">
+  <h2>Internos</h2>
+  <div id="internosContainer"></div>
+  <h2>Externos</h2>
+  <div id="externosContainer"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, arrayUnion, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+    authDomain: "tsjcatrp.firebaseapp.com",
+    projectId: "tsjcatrp",
+    storageBucket: "tsjcatrp.firebasestorage.app",
+    messagingSenderId: "858193188422",
+    appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth, user=>{
+    if(!user) window.location.href="/modulo_acceso/identificacion.jsp/pagina.html";
+    else{
+      currentUser=user;
+      cargarUsuariosTribunal();
+      loadSanciones();
+    }
+  });
+
+  // TAB SWITCH
+  const tabNuevo = document.getElementById("tabNuevo");
+  const tabRegistros = document.getElementById("tabRegistros");
+  const nuevoTab = document.getElementById("nuevoTab");
+  const registrosTab = document.getElementById("registrosTab");
+
+  tabNuevo.addEventListener("click",()=>{
+    tabNuevo.classList.add("active");
+    tabRegistros.classList.remove("active");
+    nuevoTab.style.display="block";
+    registrosTab.style.display="none";
+  });
+
+  tabRegistros.addEventListener("click",()=>{
+    tabRegistros.classList.add("active");
+    tabNuevo.classList.remove("active");
+    nuevoTab.style.display="none";
+    registrosTab.style.display="block";
+    loadSanciones();
+  });
+
+  // Mostrar formulario según tipo
+  const tipoSelect=document.getElementById("tipoSancion");
+  const formTribunal=document.getElementById("formTribunal");
+  const formExterno=document.getElementById("formExterno");
+
+  tipoSelect.addEventListener("change",()=>{
+    if(tipoSelect.value==="Tribunal"){
+      formTribunal.style.display="block";
+      formExterno.style.display="none";
+    }else if(tipoSelect.value==="Externo"){
+      formTribunal.style.display="none";
+      formExterno.style.display="block";
+    }else{
+      formTribunal.style.display="none";
+      formExterno.style.display="none";
+    }
+  });
+
+  // Cargar usuarios del tribunal (Nombre exacto)
+  async function cargarUsuariosTribunal(){
+    const select=document.getElementById("usuarioTribunal");
+    select.innerHTML="<option value=''>Seleccione</option>";
+    const snapshot = await getDocs(collection(db,"users"));
+    snapshot.forEach(u=>{
+      const data=u.data();
+      const option=document.createElement("option");
+      option.value=data.Nombre; // ✅ N mayúscula
+      option.textContent=data.Nombre; // ✅ N mayúscula
+      select.appendChild(option);
+    });
+  }
+
+  // Guardar sanción
+  document.getElementById("guardarSancion").addEventListener("click", async ()=>{
+    const tipo=tipoSelect.value;
+    if(!tipo) return alert("Seleccione tipo de sanción");
+
+    try{
+      if(tipo==="Tribunal"){
+        const usuario=document.getElementById("usuarioTribunal").value;
+        const motivo=document.getElementById("motivoTribunal").value.trim();
+        const articulo=document.getElementById("articuloTribunal").value.trim();
+        const notas=document.getElementById("notasTribunal").value.trim();
+
+        if(!usuario || !motivo) return alert("Usuario y motivo son obligatorios");
+
+        await addDoc(collection(db,"sanciones"),{
+          tipo:"Interno",
+          creadorUID:currentUser.uid,
+          usuario,
+          motivo,
+          articulo,
+          notas:[notas].filter(n=>n),
+          fecha:new Date()
+        });
+
+      }else{
+        const nombre=document.getElementById("nombreExterno").value.trim();
+        const dni=document.getElementById("dniExterno").value.trim();
+        const motivo=document.getElementById("motivoExterno").value.trim();
+        const articulo=document.getElementById("articuloExterno").value.trim();
+        const notas=document.getElementById("notasExterno").value.trim();
+        const faccion=document.getElementById("faccionExterno").value.trim();
+        const placa=document.getElementById("placaExterno").value.trim();
+
+        if(!nombre || !dni || !motivo || !faccion || !placa) return alert("Campos obligatorios incompletos");
+
+        await addDoc(collection(db,"sanciones"),{
+          tipo:"Externo",
+          creadorUID:currentUser.uid,
+          nombre,
+          dni,
+          motivo,
+          articulo,
+          notas:[notas].filter(n=>n),
+          faccion,
+          placa,
+          fecha:new Date()
+        });
+      }
+
+      alert("Sanción registrada");
+      // limpiar formulario
+      nuevoTab.querySelectorAll("input,textarea,select").forEach(i=>i.value="");
+      tipoSelect.value="";
+      formTribunal.style.display="none";
+      formExterno.style.display="none";
+
+      loadSanciones();
+    }catch(err){
+      console.error(err);
+      alert("Error guardando sanción");
+    }
+  });
+
+  // Cargar sanciones
+  async function loadSanciones(){
+    const internosContainer=document.getElementById("internosContainer");
+    const externosContainer=document.getElementById("externosContainer");
+    internosContainer.innerHTML="";
+    externosContainer.innerHTML="";
+
+    const snapshot=await getDocs(collection(db,"sanciones"));
+    if(snapshot.empty){
+      internosContainer.innerHTML="<p>No hay sanciones internas.</p>";
+      externosContainer.innerHTML="<p>No hay sanciones externas.</p>";
+      return;
+    }
+
+    snapshot.forEach(docu=>{
+      const data=docu.data();
+      const card=document.createElement("div");
+      card.className="sancion-card";
+
+      let html="";
+      if(data.tipo==="Interno"){
+        html="<p><span class='label'>Usuario Tribunal:</span> "+data.usuario+"</p>";
+        html+="<p><span class='label'>Motivo:</span> "+data.motivo+"</p>";
+        if(data.articulo) html+="<p><span class='label'>Artículo:</span> "+data.articulo+"</p>";
+      }else{
+        html="<p><span class='label'>Nombre:</span> "+data.nombre+"</p>"+
+             "<p><span class='label'>DNI:</span> "+data.dni+"</p>"+
+             "<p><span class='label'>Motivo:</span> "+data.motivo+"</p>";
+        if(data.articulo) html+="<p><span class='label'>Artículo:</span> "+data.articulo+"</p>";
+        if(data.faccion) html+="<p><span class='label'>Facción:</span> "+data.faccion+"</p>";
+        if(data.placa) html+="<p><span class='label'>Placa:</span> "+data.placa+"</p>";
+      }
+
+      html+="<p><span class='label'>Notas:</span> "+(data.notas?.join(", ")||"-")+"</p>";
+      html+="<div class='actions'><button class='note'>Añadir Nota</button><button class='delete'>Eliminar</button></div>";
+
+      card.innerHTML=html;
+
+      // Añadir nota
+      card.querySelector(".note").addEventListener("click", async ()=>{
+        const nota=prompt("Ingrese nota:");
+        if(nota){
+          await updateDoc(doc(db,"sanciones",docu.id),{
+            notas: arrayUnion(nota)
+          });
+          loadSanciones();
+        }
+      });
+
+      // Eliminar sanción
+      card.querySelector(".delete").addEventListener("click", async ()=>{
+        if(confirm("Eliminar sanción?")){
+          await deleteDoc(doc(db,"sanciones",docu.id));
+          loadSanciones();
+        }
+      });
+
+      if(data.tipo==="Interno") internosContainer.appendChild(card);
+      else externosContainer.appendChild(card);
+    });
+  }
+
+</script>
+
+</body>
+</html>
