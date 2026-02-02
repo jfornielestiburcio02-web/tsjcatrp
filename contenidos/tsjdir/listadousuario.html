@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Listado de Usuarios - TSJ CATRP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif; background:#f0f2f5; padding:20px; }
+  h2 { text-align:center; color:#333; margin-bottom:20px; }
+  table { width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+  th, td { padding:12px; text-align:left; border-bottom:1px solid #ccc; }
+  th { background:#1e90ff; color:white; }
+  tr:hover { background:#f1f1f1; }
+  input.roleInput { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; }
+  button { padding:6px 12px; border:none; border-radius:6px; margin-right:5px; cursor:pointer; font-weight:600; }
+  .btnEdit { background:linear-gradient(135deg,#1e90ff,#0077cc); color:white; }
+  .btnEdit:hover { background:linear-gradient(135deg,#0077cc,#005fa3); }
+  .btnDel { background:linear-gradient(135deg,#ff4b5c,#ff1f40); color:white; }
+  .btnDel:hover { background:linear-gradient(135deg,#ff1f40,#c8002b); }
+  #msg { margin-top:15px; font-weight:600; text-align:center; }
+</style>
+</head>
+<body>
+
+<h2>Listado de Usuarios</h2>
+<div id="msg"></div>
+<table>
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>UID</th>
+      <th>Role</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody">
+    <tr id="loadingRow"><td colspan="4" style="text-align:center;">Cargando usuarios...</td></tr>
+  </tbody>
+</table>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Config Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+  measurementId: "G-T3ZV6LKBVV"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const tableBody = document.getElementById("tableBody");
+const msg = document.getElementById("msg");
+
+let currentUser = null;
+
+onAuthStateChanged(auth, (user)=>{
+  if(!user){
+    window.top.location.href="/modulo_acceso/identificacion.jsp";
+    return;
+  }
+  currentUser = user;
+  cargarUsuarios();
+});
+
+async function cargarUsuarios(){
+  tableBody.innerHTML='<tr><td colspan="4" style="text-align:center;">Cargando usuarios...</td></tr>';
+  try{
+    const snapshot = await getDocs(collection(db,"users"));
+    tableBody.innerHTML="";
+    if(snapshot.empty){
+      tableBody.innerHTML='<tr><td colspan="4" style="text-align:center;">No hay usuarios registrados</td></tr>';
+      return;
+    }
+
+    snapshot.forEach(docu=>{
+      const data = docu.data();
+      const uid = docu.id;
+      const nombre = data.Nombre || "(sin nombre)";
+      const role = data.role || "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${nombre}</td>
+        <td>${uid}</td>
+        <td><input type="text" class="roleInput" value="${role}"></td>
+        <td>
+          <button class="btnEdit">Guardar</button>
+          <button class="btnDel">Eliminar</button>
+        </td>
+      `;
+
+      // Guardar role
+      tr.querySelector(".btnEdit").onclick = async ()=>{
+        const newRole = tr.querySelector(".roleInput").value.trim();
+        try{
+          await updateDoc(doc(db,"users",uid), {role: newRole});
+          msg.style.color="green";
+          msg.textContent=`Role actualizado para ${nombre}`;
+        }catch(err){
+          console.error(err);
+          msg.style.color="red";
+          msg.textContent=`Error actualizando role: ${err.message}`;
+        }
+      };
+
+      // Eliminar usuario
+      tr.querySelector(".btnDel").onclick = async ()=>{
+        if(!confirm(`¿Seguro que quieres eliminar al usuario ${nombre}?`)) return;
+        try{
+          await deleteDoc(doc(db,"users",uid));
+          msg.style.color="green";
+          msg.textContent=`Usuario ${nombre} eliminado`;
+          tr.remove();
+        }catch(err){
+          console.error(err);
+          msg.style.color="red";
+          msg.textContent=`Error eliminando usuario: ${err.message}`;
+        }
+      };
+
+      tableBody.appendChild(tr);
+    });
+  }catch(err){
+    console.error(err);
+    tableBody.innerHTML='<tr><td colspan="4" style="text-align:center;">Error cargando usuarios</td></tr>';
+  }
+}
+</script>
+
+<script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+
+</body>
+</html>
