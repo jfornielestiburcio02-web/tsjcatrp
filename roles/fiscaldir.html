@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TSJ Dirección</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    display:flex;
+    height:100vh;
+    background:#f0f2f5;
+  }
+
+  /* Sidebar moderno */
+  .sidebar {
+    width:250px;
+    background: rgba(30,42,56,0.95);
+    backdrop-filter: blur(6px);
+    color:white;
+    display:flex;
+    flex-direction:column;
+    padding:20px;
+    gap:12px;
+  }
+
+  .sidebar h2 {
+    margin-top:0;
+    font-size:20px;
+    text-align:center;
+    font-weight:600;
+  }
+
+  .sidebar button {
+    padding:8px 14px;
+    border:none;
+    border-radius:20px;
+    background: linear-gradient(135deg,#1e90ff,#0077cc);
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .sidebar button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  }
+
+  /* Contenido */
+  .content {
+    flex:1;
+    padding:0;
+    overflow-y:auto;
+  }
+
+  iframe#mainFrame {
+    width:100%;
+    height:100%;
+    border:none;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Fiscalía General</h2>
+    <button onclick="loadContent('/contenidos/fiscaldir/notasblog.html')">Notas</button>
+    <button onclick="loadContent('/contenidos/fiscaldir/juiciosrealizados.html')">Realizados</button>
+    <button onclick="loadContent('/contenidos/fiscaldir/casos.html')">Juicios</button>
+    <button onclick="loadContent('/contenidos/fiscaldir/misdatos.html')">Mis Datos</button>
+    <button onclick="loadContent('/contenidos/fiscaldir/pagMenuFuncionFiscal.html')">Función Fiscal</button>
+  </div>
+
+  <!-- Contenedor principal -->
+  <div class="content">
+    <iframe id="mainFrame" src=""></iframe>
+  </div>
+
+  <script>
+    const mainFrame = document.getElementById("mainFrame");
+
+    function loadContent(url){
+      mainFrame.src = url;
+    }
+  </script>
+  <script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+<script type="module">
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
+    }
+  });
+
+  protegerRuta(["TSJ Dirección"]);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Notas Personales</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif; margin:20px; background:#f0f2f5; }
+  .card { background:white; padding:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); max-width:600px; margin:auto; }
+  label { display:block; margin-top:10px; font-weight:600; }
+  textarea { width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:5px; }
+  button { margin-top:15px; padding:10px; background:#1e90ff; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; width:100%; }
+  button:hover { background:#0077cc; }
+  .msg { margin-top:10px; font-weight:600; text-align:center; }
+  .logs { margin-top:20px; max-width:600px; margin:auto; }
+  .nota { background:#e6f0ff; padding:10px; border-radius:6px; margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Mis Notas</h2>
+  <label>Escribe tu nota:</label>
+  <textarea id="notaTexto" placeholder="Escribe aquí tu nota..."></textarea>
+  <button id="guardarBtn">Guardar Nota</button>
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="logs" id="logs"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+    authDomain: "tsjcatrp.firebaseapp.com",
+    projectId: "tsjcatrp",
+    storageBucket: "tsjcatrp.firebasestorage.app",
+    messagingSenderId: "858193188422",
+    appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const guardarBtn = document.getElementById("guardarBtn");
+  const msg = document.getElementById("msg");
+  const logsDiv = document.getElementById("logs");
+  let currentUser = null;
+
+  // Detectar usuario logueado
+  onAuthStateChanged(auth, (user) => {
+    if(!user){
+      window.location.href = "/modulo_acceso/identificacion.jsp";
+      return;
+    }
+    currentUser = user;
+    cargarNotas(); // cargar notas existentes
+  });
+
+  // Guardar nota
+  guardarBtn.addEventListener("click", async () => {
+    const texto = document.getElementById("notaTexto").value.trim();
+    if(!texto){
+      msg.style.color = "red";
+      msg.textContent = "La nota no puede estar vacía";
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "notas"), {
+        texto,
+        uid: currentUser.uid,
+        createdAt: Timestamp.now()
+      });
+
+      msg.style.color = "green";
+      msg.textContent = "Nota guardada ✅";
+      document.getElementById("notaTexto").value = "";
+      cargarNotas(); // actualizar logs
+    } catch (error) {
+      console.error(error);
+      msg.style.color = "red";
+      msg.textContent = "Error guardando nota: " + error.message;
+    }
+  });
+
+  // Cargar notas del usuario
+  async function cargarNotas(){
+    logsDiv.innerHTML = "<h3>Mis Notas</h3>";
+    try {
+      const q = query(collection(db, "notas"), where("uid", "==", currentUser.uid));
+      const snapshot = await getDocs(q);
+
+      if(snapshot.empty){
+        logsDiv.innerHTML += "<p>No tienes notas aún.</p>";
+        return;
+      }
+
+      // Ordenar manualmente si no hay createdAt en algunos documentos
+      const notasArray = [];
+      snapshot.forEach(docu => {
+        const data = docu.data();
+        const fecha = data.createdAt ? data.createdAt.toDate() : new Date(0);
+        notasArray.push({texto: data.texto, fecha});
+      });
+
+      notasArray.sort((a,b) => b.fecha - a.fecha); // más recientes arriba
+
+      notasArray.forEach(nota => {
+        logsDiv.innerHTML += `<div class="nota"><strong>${nota.fecha.toLocaleString()}</strong><br>${nota.texto}</div>`;
+      });
+
+    } catch(err){
+      console.error(err);
+      logsDiv.innerHTML += "<p>Error cargando notas.</p>";
+    }
+  }
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Delitos Complejos - Juicios</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    color:#333;
+    padding:20px;
+  }
+
+  h1 {
+    text-align:center;
+    color:#1e90ff;
+    margin-bottom:30px;
+  }
+
+  .form-group {
+    margin-bottom:16px;
+  }
+
+  .form-group label {
+    font-weight:600;
+    display:block;
+    margin-bottom:6px;
+  }
+
+  select, input[type="text"], textarea {
+    width:100%;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    font-size:14px;
+  }
+
+  fieldset {
+    border:1px solid #ccc;
+    border-radius:6px;
+    padding:10px 15px;
+    margin-bottom:16px;
+  }
+
+  legend {
+    font-weight:600;
+  }
+
+  .checkbox-group {
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+
+  button {
+    padding:10px 20px;
+    border:none;
+    border-radius:20px;
+    background:#28a745;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.25s;
+  }
+
+  button:hover {
+    background:#218838;
+  }
+
+  .delitos-guardados {
+    margin-top:30px;
+    background:white;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .delitos-guardados h3 {
+    margin-top:0;
+    color:#ff6f00;
+  }
+
+  .delito-item {
+    border-bottom:1px solid #ccc;
+    padding:6px 0;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Delitos Complejos</h1>
+
+<div class="form-group">
+  <label>Seleccione Juicio</label>
+  <select id="juicioSelect">
+    <option value="">Seleccione un juicio</option>
+  </select>
+</div>
+
+<div id="delitosForm" style="display:none;">
+
+  <fieldset>
+    <legend>Tipo de Delito</legend>
+    <div class="checkbox-group">
+      <label><input type="checkbox" value="Mayor" class="tipoDelito"> Mayor</label>
+      <label><input type="checkbox" value="Menor" class="tipoDelito"> Menor</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>HOMICIDIO</legend>
+    <div class="checkbox-group">
+      <label><input type="checkbox" value="Homicidio Básico" class="delito"> Homicidio Básico</label>
+      <label><input type="checkbox" value="Homicidio Calificado" class="delito"> Homicidio Calificado</label>
+      <label><input type="checkbox" value="Homicidio por Imprudencia" class="delito"> Homicidio por Imprudencia</label>
+      <label><input type="checkbox" value="Inducción al Auxilio" class="delito"> Inducción al Auxilio</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>SALUD PÚBLICA</legend>
+    <div class="checkbox-group">
+      <label><input type="checkbox" value="Tráfico de drogas / Estupefacientes" class="delito"> Tráfico de drogas / Estupefacientes</label>
+      <label><input type="checkbox" value="Fraudes alimentarios y aguas" class="delito"> Fraudes alimentarios y aguas</label>
+      <label><input type="checkbox" value="Riesgo por sustancias peligrosas" class="delito"> Riesgo por sustancias peligrosas</label>
+      <label><input type="checkbox" value="Promoción de consumo nocivo" class="delito"> Promoción de consumo nocivo</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>INFORMACIÓN</legend>
+    <div class="checkbox-group">
+      <label><input type="checkbox" value="Phishing y suplantación de identidad" class="delito"> Phishing y suplantación de identidad</label>
+      <label><input type="checkbox" value="Ransomware (Secuestro de datos)" class="delito"> Ransomware (Secuestro de datos)</label>
+      <label><input type="checkbox" value="Acceso ilícito (Hacking)" class="delito"> Acceso ilícito (Hacking)</label>
+      <label><input type="checkbox" value="Fraude informático" class="delito"> Fraude informático</label>
+      <label><input type="checkbox" value="Ciberespionaje" class="delito"> Ciberespionaje</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>DELITOS CONDUCTAS ERRÓNEAS</legend>
+    <div class="checkbox-group">
+      <label><input type="checkbox" value="Desórdenes Públicos Comunes" class="delito"> Desórdenes Públicos Comunes</label>
+      <label><input type="checkbox" value="Desórdenes Agravados" class="delito"> Desórdenes Agravados</label>
+      <label><input type="checkbox" value="Provocación de Avalanchas" class="delito"> Provocación de Avalanchas</label>
+      <label><input type="checkbox" value="Falsa alarma" class="delito"> Falsa alarma</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>OTROS</legend>
+    <div class="form-group">
+      <label>Especifique</label>
+      <textarea id="otrosDelitos" rows="2" placeholder="Especifique otros delitos"></textarea>
+    </div>
+  </fieldset>
+
+  <button id="guardarDelitos">Guardar Delitos</button>
+</div>
+
+<div class="delitos-guardados" id="delitosGuardados" style="display:none;">
+  <h3>Delitos Definidos</h3>
+  <div id="listaDelitos"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+    authDomain: "tsjcatrp.firebaseapp.com",
+    projectId: "tsjcatrp",
+    storageBucket: "tsjcatrp.firebasestorage.app",
+    messagingSenderId: "858193188422",
+    appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth,user=>{
+    if(!user) window.location.href="/modulo_acceso/identificacion.jsp/pagina.html";
+    else{
+      currentUser=user;
+      cargarJuicios();
+    }
+  });
+
+  const juicioSelect = document.getElementById("juicioSelect");
+  const delitosForm = document.getElementById("delitosForm");
+  const listaDelitos = document.getElementById("listaDelitos");
+  const delitosGuardados = document.getElementById("delitosGuardados");
+
+  async function cargarJuicios(){
+    const snap = await getDocs(collection(db,"casos"));
+    snap.forEach(docu=>{
+      const option=document.createElement("option");
+      option.value=docu.id;
+      option.textContent=docu.data().nombre || docu.id;
+      juicioSelect.appendChild(option);
+    });
+  }
+
+  juicioSelect.addEventListener("change", async ()=>{
+    const juicioId = juicioSelect.value;
+    if(!juicioId){
+      delitosForm.style.display="none";
+      delitosGuardados.style.display="none";
+      return;
+    }
+
+    delitosForm.style.display="block";
+
+    // Cargar delitos guardados
+    const docRef = doc(db,"casos",juicioId,"delitos","definidos");
+    const docSnap = await getDoc(docRef);
+    listaDelitos.innerHTML="";
+    if(docSnap.exists()){
+      const data = docSnap.data();
+      const delitos = data.delitos || [];
+      const otros = data.otros || "";
+      delitos.forEach(d=>{
+        const div = document.createElement("div");
+        div.className="delito-item";
+        div.textContent=d;
+        listaDelitos.appendChild(div);
+      });
+      if(otros){
+        const div = document.createElement("div");
+        div.className="delito-item";
+        div.textContent="Otros: "+otros;
+        listaDelitos.appendChild(div);
+      }
+      delitosGuardados.style.display="block";
+    } else {
+      delitosGuardados.style.display="none";
+    }
+  });
+
+  document.getElementById("guardarDelitos").addEventListener("click", async ()=>{
+    const juicioId = juicioSelect.value;
+    if(!juicioId) return alert("Seleccione un juicio");
+
+    const tipoDelito = Array.from(document.querySelectorAll(".tipoDelito:checked")).map(c=>c.value);
+    const delitos = Array.from(document.querySelectorAll(".delito:checked")).map(c=>c.value);
+    const otros = document.getElementById("otrosDelitos").value.trim();
+
+    const todosDelitos = [...tipoDelito,...delitos];
+
+    try{
+      await setDoc(doc(db,"casos",juicioId,"delitos","definidos"),{
+        delitos: todosDelitos,
+        otros: otros
+      });
+      alert("Delitos guardados correctamente");
+      juicioSelect.dispatchEvent(new Event("change")); // recargar delitos guardados
+      document.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);
+      document.getElementById("otrosDelitos").value="";
+    }catch(err){
+      console.error(err);
+      alert("Error guardando delitos");
+    }
+  });
+
+</script>
+
+</body>
+</html>
