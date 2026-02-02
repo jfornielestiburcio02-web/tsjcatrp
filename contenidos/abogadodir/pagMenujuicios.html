@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ver Juicios</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    padding:20px;
+    color:#333;
+  }
+
+  h1 {
+    text-align:center;
+    margin-bottom:20px;
+    color:#1e90ff;
+  }
+
+  .case-card {
+    background:white;
+    border-radius:12px;
+    padding:16px 20px;
+    margin-bottom:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    transition:0.2s;
+  }
+
+  .case-card:hover {
+    box-shadow:0 6px 20px rgba(0,0,0,0.2);
+  }
+
+  .case-card h2 {
+    margin:0 0 8px 0;
+    font-size:18px;
+    color:#0077cc;
+  }
+
+  .case-card p {
+    margin:4px 0;
+    font-size:14px;
+  }
+
+  .label {
+    font-weight:600;
+    color:#555;
+  }
+
+  .container {
+    max-width:900px;
+    margin:0 auto;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Juicios Registrados</h1>
+  <div class="container" id="casesContainer">
+    <!-- Aquí se van a mostrar los casos -->
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+      authDomain: "tsjcatrp.firebaseapp.com",
+      projectId: "tsjcatrp",
+      storageBucket: "tsjcatrp.firebasestorage.app",
+      messagingSenderId: "858193188422",
+      appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const container = document.getElementById("casesContainer");
+
+    async function loadCases(){
+      try {
+        const casosRef = collection(db, "casos");
+        const q = query(casosRef, orderBy("createdAt","desc"));
+        const snapshot = await getDocs(q);
+
+        if(snapshot.empty){
+          container.innerHTML = "<p>No hay juicios registrados.</p>";
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement("div");
+          card.className = "case-card";
+          card.innerHTML = `
+            <h2>${data.nombre || "Sin nombre"}</h2>
+            <p><span class="label">Demandante:</span> ${data.demandante || "-"}</p>
+            <p><span class="label">Demandado:</span> ${data.demandado || "-"}</p>
+            <p><span class="label">Motivo:</span> ${data.motivo || "-"}</p>
+            <p><span class="label">Fecha:</span> ${data.fecha || "-"} <span class="label">Hora:</span> ${data.hora || "-"}</p>
+            <p><span class="label">Pruebas:</span> ${data.pruebas || "-"}</p>
+            <p><span class="label">Solicita:</span> ${data.solicita || "-"}</p>
+            <p><span class="label">Creado en:</span> ${data.createdAt ? new Date(data.createdAt.seconds*1000).toLocaleString() : "-"}</p>
+          `;
+          container.appendChild(card);
+        });
+
+      } catch(err){
+        console.error(err);
+        container.innerHTML = "<p>Error cargando los juicios.</p>";
+      }
+    }
+
+    loadCases();
+  </script>
+
+</body>
+</html>

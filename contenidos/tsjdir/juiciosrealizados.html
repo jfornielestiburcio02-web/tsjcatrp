@@ -170,8 +170,17 @@ async function showCase(caseId, caseName){
   };
 }
 </script>
-<script type="module" src="protectorEntradas.js"></script>
 <script type="module">
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
+    }
+  });
+
   protegerRuta(["TSJ Dirección"]);
 </script>
 </body>

@@ -66,10 +66,10 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <h2>Juez</h2>
-    <button onclick="loadContent('/contenidos/juezdir/notasblog.html')">Notas</button>
-    <button onclick="loadContent('/contenidos/juezdir/casos.html')">Casos</button>
-    <button onclick="loadContent('/contenidos/juezdir/juiciosrealizados.html')">Realizados</button>
+    <h2>Abogado</h2>
+    <button onclick="loadContent('/contenidos/abogadodir/notasblog.html')">Notas</button>
+    <button onclick="loadContent('/contenidos/abogadodir/pagMenujuicios.html')">Ver Juicios</button>
+    <button onclick="loadContent('/contenidos/abogadodir/clientes.html')">Clientes</button>
   </div>
 
   <!-- Contenedor principal -->
@@ -93,10 +93,8 @@
 
   const auth = getAuth();
 
-  // Bloquear acceso si no está logueado
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      // Redirige a la página de login
       window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
     }
   });

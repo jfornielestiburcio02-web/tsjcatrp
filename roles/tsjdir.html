@@ -88,10 +88,22 @@
       mainFrame.src = url;
     }
   </script>
-<script type="module" src="protectorEntradas.js"></script>
 <script type="module">
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const auth = getAuth();
+
+  // Bloquear acceso si no está logueado
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      // Redirige a la página de login
+      window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
+    }
+  });
+
   protegerRuta(["TSJ Dirección"]);
 </script>
+
 
 </body>
 </html>

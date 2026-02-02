@@ -86,14 +86,14 @@ const navButtons = document.getElementById("navButtons");
 // Logout
 document.getElementById("logoutBtn").addEventListener("click", () => {
   signOut(auth).then(() => {
-    window.top.location.href = "/modulo_acceso/identificacion.jsp";
+    window.top.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
   });
 });
 
 // Detectar usuario y mostrar botones según roles (ARRAY)
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.top.location.href = "/modulo_acceso/identificacion.jsp";
+    window.top.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
     return;
   }
 
@@ -119,6 +119,7 @@ onAuthStateChanged(auth, async (user) => {
     createButton("TSJ Dirección", "/roles/tsjdir.html", "TSJ Dirección");
     createButton("Juez", "/roles/juezdir.html", "Juez");
     createButton("Fiscalía", "/roles/fiscaldir.html", "Fiscalía");
+    createButton("Abogado", "/roles/abogadodir.html", "Abogado");
 
   } catch(err) {
     console.error(err);

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Clientes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    color:#333;
+    padding:20px;
+  }
+
+  h1 {
+    text-align:center;
+    color:#1e90ff;
+  }
+
+  .tabs {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:20px;
+  }
+
+  .tabs button {
+    padding:8px 16px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    background:#1e90ff;
+    color:white;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .tabs button.active {
+    background:#0077cc;
+  }
+
+  .tab-content {
+    max-width:900px;
+    margin:0 auto;
+  }
+
+  .form-group {
+    margin-bottom:12px;
+  }
+
+  .form-group label {
+    font-weight:600;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    margin-top:4px;
+    font-size:14px;
+  }
+
+  .form-group textarea {
+    resize:vertical;
+  }
+
+  button.submit-btn {
+    background:#28a745;
+    color:white;
+    font-weight:600;
+    padding:10px 16px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    transition:0.25s;
+  }
+
+  button.submit-btn:hover {
+    background:#218838;
+  }
+
+  .client-card {
+    background:white;
+    padding:16px 20px;
+    border-radius:12px;
+    margin-bottom:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    transition:0.2s;
+  }
+
+  .client-card:hover {
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);
+  }
+
+  .client-card p {
+    margin:4px 0;
+  }
+
+  .label {
+    font-weight:600;
+    color:#555;
+  }
+
+  .actions {
+    margin-top:8px;
+    display:flex;
+    gap:8px;
+  }
+
+  .actions button {
+    padding:6px 12px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
+    transition:0.25s;
+  }
+
+  .actions button.delete {
+    background:#dc3545;
+    color:white;
+  }
+
+  .actions button.note {
+    background:#ffc107;
+    color:white;
+  }
+</style>
+</head>
+<body>
+
+<h1>Clientes</h1>
+
+<div class="tabs">
+  <button id="tabNuevo" class="active">Nuevo</button>
+  <button id="tabRegistros">Registros</button>
+</div>
+
+<div class="tab-content" id="nuevoTab">
+  <div class="form-group">
+    <label>Nombre cliente</label>
+    <input type="text" id="nombreCliente">
+  </div>
+  <div class="form-group">
+    <label>Motivo Solicitud</label>
+    <input type="text" id="motivoSolicitud">
+  </div>
+  <div class="form-group">
+    <label>¿Juicio?</label>
+    <select id="juicio">
+      <option value="Sí">Sí</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Observaciones</label>
+    <textarea id="observaciones" rows="3"></textarea>
+  </div>
+  <div class="form-group">
+    <label>¿Paga?</label>
+    <select id="paga">
+      <option value="Sí">Sí</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <button class="submit-btn" id="guardarCliente">Guardar Cliente</button>
+</div>
+
+<div class="tab-content" id="registrosTab" style="display:none;">
+  <div id="clientesContainer">
+    <!-- Clientes se cargan aquí -->
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+    authDomain: "tsjcatrp.firebaseapp.com",
+    projectId: "tsjcatrp",
+    storageBucket: "tsjcatrp.firebasestorage.app",
+    messagingSenderId: "858193188422",
+    appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
+    } else {
+      currentUser = user;
+      loadClientes();
+    }
+  });
+
+  // TAB SWITCH
+  const tabNuevo = document.getElementById("tabNuevo");
+  const tabRegistros = document.getElementById("tabRegistros");
+  const nuevoTab = document.getElementById("nuevoTab");
+  const registrosTab = document.getElementById("registrosTab");
+
+  tabNuevo.addEventListener("click",()=>{
+    tabNuevo.classList.add("active");
+    tabRegistros.classList.remove("active");
+    nuevoTab.style.display="block";
+    registrosTab.style.display="none";
+  });
+
+  tabRegistros.addEventListener("click",()=>{
+    tabRegistros.classList.add("active");
+    tabNuevo.classList.remove("active");
+    nuevoTab.style.display="none";
+    registrosTab.style.display="block";
+    loadClientes();
+  });
+
+  // GUARDAR CLIENTE
+  document.getElementById("guardarCliente").addEventListener("click", async ()=>{
+    const nombre = document.getElementById("nombreCliente").value.trim();
+    const motivo = document.getElementById("motivoSolicitud").value.trim();
+    const juicio = document.getElementById("juicio").value;
+    const observaciones = document.getElementById("observaciones").value.trim();
+    const paga = document.getElementById("paga").value;
+
+    if(!nombre) return alert("Nombre obligatorio");
+
+    try{
+      await addDoc(collection(db,"clientes"),{
+        uid: currentUser.uid,
+        nombre,
+        motivo,
+        juicio,
+        observaciones,
+        paga,
+        notas:[]
+      });
+      alert("Cliente guardado");
+      document.getElementById("nombreCliente").value="";
+      document.getElementById("motivoSolicitud").value="";
+      document.getElementById("observaciones").value="";
+      loadClientes();
+    }catch(err){
+      console.error(err);
+      alert("Error guardando cliente");
+    }
+  });
+
+  // CARGAR CLIENTES DEL USUARIO
+  async function loadClientes(){
+    if(!currentUser) return;
+    const container = document.getElementById("clientesContainer");
+    container.innerHTML = "";
+    const q = query(collection(db,"clientes"), where("uid","==",currentUser.uid));
+    const snapshot = await getDocs(q);
+
+    if(snapshot.empty){
+      container.innerHTML="<p>No tienes clientes registrados.</p>";
+      return;
+    }
+
+    snapshot.forEach(docu=>{
+      const data = docu.data();
+      const card = document.createElement("div");
+      card.className="client-card";
+      card.innerHTML=`
+        <p><span class="label">Nombre:</span> ${data.nombre}</p>
+        <p><span class="label">Motivo:</span> ${data.motivo}</p>
+        <p><span class="label">Juicio:</span> ${data.juicio}</p>
+        <p><span class="label">Observaciones:</span> ${data.observaciones}</p>
+        <p><span class="label">Paga:</span> ${data.paga}</p>
+        <p><span class="label">Notas:</span> ${data.notas?.join(", ") || "-"}</p>
+        <div class="actions">
+          <button class="note">Añadir Nota</button>
+          <button class="delete">Eliminar</button>
+        </div>
+      `;
+      // Añadir nota
+      card.querySelector(".note").addEventListener("click", async ()=>{
+        const nota = prompt("Ingrese nota:");
+        if(nota){
+          await updateDoc(doc(db,"clientes",docu.id),{
+            notas: arrayUnion(nota)
+          });
+          loadClientes();
+        }
+      });
+      // Eliminar cliente
+      card.querySelector(".delete").addEventListener("click", async ()=>{
+        if(confirm("Eliminar cliente?")){
+          await deleteDoc(doc(db,"clientes",docu.id));
+          loadClientes();
+        }
+      });
+
+      container.appendChild(card);
+    });
+  }
+</script>
+
+</body>
+</html>
