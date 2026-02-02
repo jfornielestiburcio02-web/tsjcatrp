@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sanciones y Facciones - TSJ Dirección</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    padding:20px;
+  }
+
+  h2 { text-align:center; color:#333; }
+  .buttons { display:flex; gap:10px; justify-content:center; margin-bottom:20px; }
+  .buttons button {
+    padding:8px 16px;
+    border:none;
+    border-radius:8px;
+    background: linear-gradient(135deg,#1e90ff,#0077cc);
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .buttons button:hover { background: linear-gradient(135deg,#0077cc,#005fa3); }
+
+  .card {
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+  }
+
+  input, select, textarea {
+    width:100%;
+    padding:8px;
+    margin-top:5px;
+    margin-bottom:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+  }
+
+  .log { max-height:400px; overflow-y:auto; background:#eef; padding:10px; border-radius:6px; }
+  .log-entry { border-bottom:1px solid #ccc; padding:6px 0; }
+  .log-entry:last-child { border-bottom:none; }
+</style>
+</head>
+<body>
+
+<h2>Sanciones de Facciones</h2>
+
+<div class="buttons">
+  <button id="btnRegistro">Registro</button>
+  <button id="btnNuevo">Nuevo</button>
+</div>
+
+<div id="registro" style="display:none;" class="card">
+  <h3>Registro de sanciones</h3>
+  <div class="log" id="logSanciones"></div>
+</div>
+
+<div id="nuevo" style="display:none;" class="card">
+  <h3>Crear nueva sanción</h3>
+  <label for="faccion">Facción</label>
+  <select id="faccion">
+    <option value="GU">GU</option>
+    <option value="MOSSOS">MOSSOS</option>
+    <option value="CNP">CNP</option>
+    <option value="GC">GC</option>
+    <option value="SEM">SEM</option>
+    <option value="BOMBERS">BOMBERS</option>
+    <option value="OTRO">OTRO (especificar)</option>
+  </select>
+
+  <label for="motivo">Motivo</label>
+  <textarea id="motivo" rows="3" placeholder="Motivo de la sanción"></textarea>
+
+  <label for="tipo">Tipo de sanción</label>
+  <input type="text" id="tipo" placeholder="Ej: Multa, Amonestación, etc.">
+
+  <button id="guardarSancion">Guardar Sanción</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔐 Config Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+  measurementId: "G-T3ZV6LKBVV"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+
+const btnRegistro = document.getElementById("btnRegistro");
+const btnNuevo = document.getElementById("btnNuevo");
+const registroDiv = document.getElementById("registro");
+const nuevoDiv = document.getElementById("nuevo");
+const logSanciones = document.getElementById("logSanciones");
+
+const faccionInput = document.getElementById("faccion");
+const motivoInput = document.getElementById("motivo");
+const tipoInput = document.getElementById("tipo");
+const guardarBtn = document.getElementById("guardarSancion");
+
+// Detectar usuario logueado
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.top.location.href="/modulo_acceso/identificacion.jsp/pagina.html";
+    return;
+  }
+  currentUser = user;
+  cargarSanciones();
+});
+
+// Alternar vistas
+btnRegistro.addEventListener("click", ()=>{
+  registroDiv.style.display="block";
+  nuevoDiv.style.display="none";
+});
+btnNuevo.addEventListener("click", ()=>{
+  registroDiv.style.display="none";
+  nuevoDiv.style.display="block";
+});
+
+// Guardar sanción
+guardarBtn.addEventListener("click", async ()=>{
+  const faccion = faccionInput.value;
+  const motivo = motivoInput.value.trim();
+  const tipo = tipoInput.value.trim();
+
+  if(!faccion || !motivo || !tipo){
+    alert("Todos los campos son obligatorios");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db,"sanciones"),{
+      uid: currentUser.uid,
+      faccion,
+      motivo,
+      tipo,
+      createdAt: new Date()
+    });
+
+    motivoInput.value="";
+    tipoInput.value="";
+    cargarSanciones();
+    alert("Sanción registrada correctamente ✅");
+  } catch(err){
+    console.error(err);
+    alert("Error al guardar sanción");
+  }
+});
+
+// Cargar sanciones existentes
+async function cargarSanciones(){
+  const q = query(collection(db,"sanciones"), orderBy("createdAt","desc"));
+  const snapshot = await getDocs(q);
+
+  logSanciones.innerHTML="";
+
+  snapshot.forEach(docu=>{
+    const data = docu.data();
+    const fecha = data.createdAt.toDate ? data.createdAt.toDate().toLocaleString() 
+                                       : new Date(data.createdAt.seconds*1000).toLocaleString();
+
+    const entry = document.createElement("div");
+    entry.className="log-entry";
+    entry.innerHTML = `<strong>Facción:</strong> ${data.faccion}<br>
+                       <strong>Tipo:</strong> ${data.tipo}<br>
+                       <strong>Motivo:</strong> ${data.motivo}<br>
+                       <em>Creado por UID: ${data.uid} (${fecha})</em>`;
+    logSanciones.appendChild(entry);
+  });
+}
+</script>
+<script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+
+</body>
+</html>

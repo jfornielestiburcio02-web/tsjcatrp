@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Header - TSJ CATRP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+}
+.header-left { display:flex; align-items:center; gap:16px; }
+.header-left img { height:50px; }
+.header-left h1 { font-size:20px; margin:0; font-weight:600; }
+.nav-buttons { display:flex; align-items:center; gap:12px; }
+.nav-buttons button {
+  padding:6px 14px;
+  border:none;
+  border-radius:20px;
+  background: linear-gradient(135deg,#1e90ff,#0077cc);
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.25s;
+}
+.nav-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+.logout-btn {
+  padding:8px 20px;
+  border:none;
+  border-radius:24px;
+  background: linear-gradient(135deg, #ff4b5c, #ff1f40);
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.25s;
+  margin-left:12px;
+}
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+</style>
+</head>
+<body>
+
+<div class="header-left">
+  <img src="/imagenes/logo.png" alt="Logo TSJ">
+  <h1>Tribunal Supremo de Justicia (CATRP)</h1>
+</div>
+
+<div class="nav-buttons" id="navButtons"></div>
+<button class="logout-btn" id="logoutBtn">Cerrar sesión</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+  measurementId: "G-T3ZV6LKBVV"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const navButtons = document.getElementById("navButtons");
+
+// Logout
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  signOut(auth).then(() => {
+    window.top.location.href = "/modulo_acceso/identificacion.jsp";
+  });
+});
+
+// Detectar usuario y mostrar botones según roles (ARRAY)
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.top.location.href = "/modulo_acceso/identificacion.jsp";
+    return;
+  }
+
+  try {
+    const docRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) return;
+
+    const roles = docSnap.data().role || []; // ARRAY de roles
+
+    const createButton = (text, url, roleName) => {
+      if (roles.includes(roleName)) {
+        const btn = document.createElement("button");
+        btn.textContent = text;
+        btn.onclick = () => {
+          window.parent.changeContentFrame(url);
+        };
+        navButtons.appendChild(btn);
+      }
+    };
+
+    createButton("TSJ Dirección", "/roles/tsjdir.html", "TSJ Dirección");
+    createButton("Juez", "/roles/juezdir.html", "Juez");
+    createButton("Fiscalía", "/roles/fiscaldir.html", "Fiscalía");
+
+  } catch(err) {
+    console.error(err);
+  }
+});
+</script>
+
+</body>
+</html>

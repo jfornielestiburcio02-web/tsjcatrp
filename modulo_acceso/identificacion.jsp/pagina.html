@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Tribunal Supremo de Justicia (CATRP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+
+    .login-card {
+      background: rgba(255,255,255,0.1);
+      padding: 40px 45px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    .login-card img {
+      height: 70px;
+      margin-bottom: 15px;
+    }
+
+    .login-card h1 {
+      font-size: 20px;
+      margin-bottom: 30px;
+      font-weight: 600;
+    }
+
+    .campo {
+      width: 100%;
+      margin-bottom: 18px;
+    }
+
+    .campo input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    #loginBtn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #1e90ff, #0077cc);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    #loginBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    }
+
+    #error {
+      margin-top: 15px;
+      color: #ffb3b3;
+      font-size: 14px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <img src="/imagenes/logo.png" alt="Logo TSJ">
+    <h1>Acceso al Sistema<br>Tribunal Supremo de Justicia (CATRP)</h1>
+
+    <div class="campo">
+      <input type="email" id="email" placeholder="Email" required>
+    </div>
+
+    <div class="campo">
+      <input type="password" id="password" placeholder="Contraseña" required>
+    </div>
+
+    <button id="loginBtn">Iniciar sesión</button>
+    <div id="error"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+      authDomain: "tsjcatrp.firebaseapp.com",
+      projectId: "tsjcatrp",
+      storageBucket: "tsjcatrp.firebasestorage.app",
+      messagingSenderId: "858193188422",
+      appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    function generateJSessionId() {
+      return Math.random().toString(36).substring(2,18);
+    }
+
+    function setCookie(name,value,days=1){
+      const d = new Date();
+      d.setTime(d.getTime() + (days*24*60*60*1000));
+      document.cookie = name+"="+value+";path=/;expires="+d.toUTCString();
+    }
+
+    const loginBtn = document.getElementById("loginBtn");
+    const errorDiv = document.getElementById("error");
+
+    loginBtn.addEventListener("click", async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if(!email || !password){
+        errorDiv.textContent = "Email y contraseña obligatorios";
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth,email,password);
+
+        const jsessionId = generateJSessionId();
+        setCookie("JSESSIONID",jsessionId);
+
+        window.location.href = "/modulo_acceso/controlador.html?jsessionid="+jsessionId;
+      } catch(err){
+        const jsessionId = generateJSessionId();
+        setCookie("JSESSIONID",jsessionId);
+
+        errorDiv.textContent = "Email o contraseña incorrectos";
+        console.error(err);
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juicios Realizados - TSJ Dirección</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif; background:#f0f2f5; padding:20px; }
+  h2 { text-align:center; color:#333; }
+  .card { background:white; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom:20px; }
+  button { padding:8px 14px; margin-top:8px; border:none; border-radius:6px; background:#0077cc; color:white; cursor:pointer; font-weight:600; }
+  button:hover { background:#005fa3; }
+  .msg { font-weight:600; margin-top:10px; color:red; }
+  .section { margin-top:20px; }
+  label { display:block; margin-top:10px; font-weight:600; }
+  input, textarea, select { width:100%; margin-top:5px; padding:8px; border-radius:6px; border:1px solid #ccc; }
+</style>
+</head>
+<body>
+<h2>Juicios Realizados</h2>
+
+<div id="juiciosList"></div>
+
+<div class="msg" id="msg"></div>
+
+<div id="caseContent"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, addDoc, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+  measurementId: "G-T3ZV6LKBVV"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const juiciosList = document.getElementById("juiciosList");
+const msg = document.getElementById("msg");
+const caseContent = document.getElementById("caseContent");
+
+// Cargar juicios
+async function loadJuicios() {
+  const q = query(collection(db, "casos"), orderBy("fecha"));
+  const snapshot = await getDocs(q);
+  juiciosList.innerHTML = "";
+  snapshot.forEach(docu => {
+    const data = docu.data();
+    const id = docu.id;
+    const btn = document.createElement("button");
+    const fechaHora = new Date(`${data.fecha}T${data.hora}`);
+    const now = new Date();
+
+    btn.textContent = `${data.nombre} - ${data.fecha} ${data.hora}`;
+    btn.onclick = () => {
+      if(now < fechaHora){
+        msg.textContent = "No puede acceder a casos que aún no han sido iniciados";
+        caseContent.innerHTML = "";
+        return;
+      }
+      msg.textContent = "";
+      showCase(docu.id, data.nombre);
+    };
+    juiciosList.appendChild(btn);
+  });
+}
+
+loadJuicios();
+
+// Mostrar contenido de un caso
+async function showCase(caseId, caseName){
+  caseContent.innerHTML = `
+    <div class="card"><h3>${caseName}</h3></div>
+    <div class="card section">
+      <h4>Nueva Incidencia</h4>
+      <label>Motivo</label><input type="text" id="incMotivo">
+      <label>Usuario que recibe</label><input type="text" id="incUsuario">
+      <label>Otros</label><textarea id="incOtros"></textarea>
+      <button id="saveInc">Registrar Incidencia</button>
+      <div id="incMsg"></div>
+    </div>
+    <div class="card section">
+      <h4>Aviso</h4>
+      <label>Tipo de aviso</label><input type="text" id="avisTipo">
+      <label>Observaciones</label><textarea id="avisObs"></textarea>
+      <button id="saveAviso">Registrar Aviso</button>
+      <div id="avisMsg"></div>
+    </div>
+    <div class="card section">
+      <h4>Resolución</h4>
+      <label>Titulo</label><input type="text" id="resTitulo">
+      <label>Caso final</label><input type="text" id="resCaso">
+      <label>Resultado</label><input type="text" id="resResultado">
+      <button id="saveRes">Registrar Resolución</button>
+      <div id="resMsg"></div>
+    </div>
+  `;
+
+  // Incidencia
+  document.getElementById("saveInc").onclick = async () => {
+    const motivo = document.getElementById("incMotivo").value;
+    const usuario = document.getElementById("incUsuario").value;
+    const otros = document.getElementById("incOtros").value;
+    if(!motivo || !usuario){document.getElementById("incMsg").textContent="Motivo y usuario son obligatorios";return;}
+    await addDoc(collection(db, "casos", caseId, "incidencias"), {motivo, usuario, otros, createdAt: new Date()});
+    document.getElementById("incMsg").textContent="Incidencia registrada ✅";
+  };
+
+  // Aviso
+  document.getElementById("saveAviso").onclick = async () => {
+    const tipo = document.getElementById("avisTipo").value;
+    const obs = document.getElementById("avisObs").value;
+    if(!tipo){document.getElementById("avisMsg").textContent="Tipo de aviso obligatorio";return;}
+    await addDoc(collection(db, "casos", caseId, "avisos"), {tipo, obs, createdAt: new Date()});
+    document.getElementById("avisMsg").textContent="Aviso registrado ✅";
+  };
+
+  // Resolución
+  document.getElementById("saveRes").onclick = async () => {
+    const titulo = document.getElementById("resTitulo").value;
+    const casoFinal = document.getElementById("resCaso").value;
+    const resultado = document.getElementById("resResultado").value;
+    if(!titulo || !casoFinal || !resultado){document.getElementById("resMsg").textContent="Todos los campos son obligatorios";return;}
+    await addDoc(collection(db, "casos", caseId, "resoluciones"), {titulo, casoFinal, resultado, createdAt:new Date()});
+    document.getElementById("resMsg").textContent="Resolución registrada ✅";
+  };
+}
+</script>
+<script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+</body>
+</html>

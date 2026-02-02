@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tribunal Supremo de Justicia (CATRP)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-izquierda {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-izquierda img {
+            height: 50px;
+        }
+
+        .header-izquierda h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #1e90ff, #0077cc);
+            border: none;
+            border-radius: 24px;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+            background: linear-gradient(135deg, #3aa0ff, #0090ff);
+        }
+
+        /* CONTENIDO CENTRAL */
+        .contenedor {
+            margin-top: 80px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-izquierda">
+            <img src="/imagenes/logo.png" alt="Logo Tribunal Supremo de Justicia">
+            <h1>Tribunal Supremo de Justicia (CATRP)</h1>
+        </div>
+
+        <a href="/modulo_acceso/identificacion.jsp/pagina.html" class="login-btn">Login</a>
+    </header>
+
+    <div class="contenedor">
+        <div class="card">
+            <p>Bienvenido al sistema del Tribunal Supremo de Justicia</p>
+        </div>
+    </div>
+
+    <script src="DefinicionBotonera.js"></script>
+</body>
+</html>

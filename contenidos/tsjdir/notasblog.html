@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Notas Personales - TSJ Dirección</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background:#f0f2f5;
+    padding:20px;
+  }
+
+  h2 {
+    text-align:center;
+    color:#333;
+  }
+
+  .card {
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+  }
+
+  input, textarea {
+    width:100%;
+    padding:8px;
+    margin-top:5px;
+    margin-bottom:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+  }
+
+  button {
+    padding:8px 16px;
+    border:none;
+    border-radius:8px;
+    background: linear-gradient(135deg,#1e90ff,#0077cc);
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+  }
+
+  button:hover {
+    background: linear-gradient(135deg,#0077cc,#005fa3);
+  }
+
+  .log {
+    margin-top:10px;
+    background:#eef;
+    padding:10px;
+    border-radius:6px;
+    max-height:300px;
+    overflow-y:auto;
+  }
+
+  .log-entry {
+    border-bottom:1px solid #ccc;
+    padding:6px 0;
+  }
+
+  .log-entry:last-child {
+    border-bottom:none;
+  }
+</style>
+</head>
+<body>
+
+<h2>Notas Personales</h2>
+
+<div class="card">
+  <label for="notaTitulo">Título de la nota</label>
+  <input type="text" id="notaTitulo" placeholder="Ej: Revisión caso X">
+
+  <label for="notaContenido">Contenido</label>
+  <textarea id="notaContenido" rows="5" placeholder="Escribe tu nota aquí..."></textarea>
+
+  <button id="guardarNota">Guardar Nota</button>
+</div>
+
+<h3>Mis notas:</h3>
+<div class="log" id="logNotas"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔐 Config de Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+  measurementId: "G-T3ZV6LKBVV"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const guardarBtn = document.getElementById("guardarNota");
+const logNotas = document.getElementById("logNotas");
+
+let currentUser = null;
+
+// Detectar usuario logueado
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    window.top.location.href = "/modulo_acceso/identificacion.jsp";
+    return;
+  }
+
+  currentUser = user; // ✅ UID real del usuario
+  await cargarNotas();
+});
+
+// Guardar nota
+guardarBtn.addEventListener("click", async () => {
+  const titulo = document.getElementById("notaTitulo").value.trim();
+  const contenido = document.getElementById("notaContenido").value.trim();
+
+  if(!titulo || !contenido){
+    alert("Título y contenido son obligatorios");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "notas"), {
+      uid: currentUser.uid, // ✅ UID real del usuario logueado
+      titulo,
+      contenido,
+      createdAt: new Date()
+    });
+
+    document.getElementById("notaTitulo").value = "";
+    document.getElementById("notaContenido").value = "";
+    cargarNotas();
+  } catch(err){
+    console.error(err);
+    alert("Error guardando la nota");
+  }
+});
+
+// Cargar notas del usuario
+async function cargarNotas(){
+  const q = query(
+    collection(db, "notas"),
+    where("uid","==", currentUser.uid), // ✅ Solo notas del usuario
+    orderBy("createdAt","desc")
+  );
+
+  const snapshot = await getDocs(q);
+  logNotas.innerHTML = "";
+
+  snapshot.forEach(docu => {
+    const data = docu.data();
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+
+    // Formatear fecha correctamente
+    let fecha;
+    if(data.createdAt.toDate){
+      fecha = data.createdAt.toDate().toLocaleString();
+    } else if(data.createdAt.seconds){
+      fecha = new Date(data.createdAt.seconds*1000).toLocaleString();
+    } else {
+      fecha = new Date().toLocaleString();
+    }
+
+    entry.innerHTML = `<strong>${data.titulo}</strong> <em>(${fecha})</em><br>${data.contenido}`;
+    logNotas.appendChild(entry);
+  });
+}
+</script>
+<script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+
+</body>
+</html>

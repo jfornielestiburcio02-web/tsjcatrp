@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Controlador - TSJ CATRP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header iframe */
+    iframe#headerFrame {
+      width: 100%;
+      height: 70px;
+      border: none;
+      display: block;
+    }
+
+    /* Iframe de contenido */
+    iframe#contentFrame {
+      flex: 1;
+      border: none;
+      width: 100%;
+      display: none; /* oculto hasta pulsar botón */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <iframe id="headerFrame" src="/modulo_acceso/header.html"></iframe>
+
+  <!-- Iframe de contenido -->
+  <iframe id="contentFrame"></iframe>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+      authDomain: "tsjcatrp.firebaseapp.com",
+      projectId: "tsjcatrp",
+      storageBucket: "tsjcatrp.firebasestorage.app",
+      messagingSenderId: "858193188422",
+      appId: "1:858193188422:web:3b5118e1022a44faad9c47",
+      measurementId: "G-T3ZV6LKBVV"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const contentFrame = document.getElementById("contentFrame");
+
+    // Función global que puede llamar el header
+    window.changeContentFrame = function(url) {
+      contentFrame.src = url;
+      contentFrame.style.display = "block"; // Mostrar iframe
+    };
+
+    // Detectar usuario logueado
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "/modulo_acceso/identificacion.jsp/pagina.html";
+        return;
+      }
+
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          window.userRole = data.role; // Guardar rol global
+        }
+      } catch(err) {
+        console.error(err);
+      }
+    });
+  </script>
+  <script type="module" src="protectorEntradas.js"></script>
+<script type="module">
+  protegerRuta(["TSJ Dirección"]);
+</script>
+
+</body>
+</html>
