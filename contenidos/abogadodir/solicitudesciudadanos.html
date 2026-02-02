@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Solicitudes Ciudadanos - TSJ CATRP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin:0;
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+    min-height:100vh;
+    padding:20px;
+  }
+
+  h1 {
+    text-align:center;
+    color:#1e90ff;
+    margin-bottom:30px;
+  }
+
+  .solicitud-card {
+    background: rgba(255,255,255,0.1);
+    border-radius:16px;
+    padding:20px 25px;
+    margin-bottom:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+  }
+
+  .solicitud-card p {
+    margin:6px 0;
+  }
+
+  .btn-group {
+    margin-top:12px;
+    display:flex;
+    gap:12px;
+  }
+
+  .btn-aceptar, .btn-rechazar {
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:24px;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.25s;
+  }
+
+  .btn-aceptar {
+    background: #28a745;
+    color:white;
+  }
+
+  .btn-aceptar:hover {
+    background:#218838;
+  }
+
+  .btn-rechazar {
+    background: #dc3545;
+    color:white;
+  }
+
+  .btn-rechazar:hover {
+    background:#b02a37;
+  }
+
+  .alerta {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:40px;
+    justify-content:center;
+  }
+
+  .alerta img {
+    width:30px;
+    height:30px;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Solicitudes Ciudadanos</h1>
+
+<div id="solicitudesContainer"></div>
+
+<div class="alerta">
+  <img src="/imagenes/alerta.png" alt="Alerta">
+  <span>Contacte al MD del usuario para más información</span>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+    authDomain: "tsjcatrp.firebaseapp.com",
+    projectId: "tsjcatrp",
+    storageBucket: "tsjcatrp.firebasestorage.app",
+    messagingSenderId: "858193188422",
+    appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let currentUser = null;
+
+  onAuthStateChanged(auth,user=>{
+    if(!user) window.location.href="/modulo_acceso/identificacion.jsp/pagina.html";
+    else currentUser=user;
+    cargarSolicitudes();
+  });
+
+  const contenedor = document.getElementById("solicitudesContainer");
+
+  async function cargarSolicitudes(){
+    contenedor.innerHTML="";
+    const snap = await getDocs(collection(db,"solicitudabogado"));
+    snap.forEach(docu=>{
+      const data = docu.data();
+      const card = document.createElement("div");
+      card.className="solicitud-card";
+      card.id=docu.id;
+
+      card.innerHTML=`
+        <p><strong>Nombre:</strong> ${data.nombre}</p>
+        <p><strong>Usuario Discord:</strong> ${data.discord}</p>
+        <p><strong>Motivo:</strong> ${data.motivo}</p>
+        <p><strong>Día del Juicio:</strong> ${data.diaJuicio || "-"}</p>
+        <p><strong>Hora del Juicio:</strong> ${data.horaJuicio || "-"}</p>
+        <p><strong>DNI:</strong> ${data.dni}</p>
+        <p><strong>Edad:</strong> ${data.edad}</p>
+        <div class="btn-group">
+          <button class="btn-aceptar">Aceptar</button>
+          <button class="btn-rechazar">Rechazar</button>
+        </div>
+        <p id="estado-${docu.id}" style="margin-top:10px;color:#ffb3b3;"></p>
+      `;
+
+      contenedor.appendChild(card);
+
+      const btnAceptar = card.querySelector(".btn-aceptar");
+      const btnRechazar = card.querySelector(".btn-rechazar");
+
+      btnAceptar.addEventListener("click", async ()=>{
+        const docRef = doc(db,"solicitudabogado",docu.id);
+        const docSnap = await getDoc(docRef);
+        const actualData = docSnap.data();
+        if(actualData.estado==="aceptada"){
+          document.getElementById(`estado-${docu.id}`).textContent="Error, la solicitud ya fue cogida por otro abogado";
+          return;
+        }
+        await updateDoc(docRef,{ estado:"aceptada", abogadoUid: currentUser.uid });
+        document.getElementById(`estado-${docu.id}`).textContent="Solicitud aceptada correctamente";
+      });
+
+      btnRechazar.addEventListener("click", async ()=>{
+        const docRef = doc(db,"solicitudabogado",docu.id);
+        const docSnap = await getDoc(docRef);
+        const actualData = docSnap.data();
+        if(actualData.estado==="aceptada"){
+          document.getElementById(`estado-${docu.id}`).textContent="Error, la solicitud ya fue cogida por otro abogado";
+          return;
+        }
+        await updateDoc(docRef,{ estado:"rechazada" });
+        document.getElementById(`estado-${docu.id}`).textContent="Solicitud rechazada correctamente";
+      });
+    });
+  }
+
+</script>
+</body>
+</html>
