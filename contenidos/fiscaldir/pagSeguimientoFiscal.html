@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registro de Intervenciones - TSJ CATRP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif; background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); color:white; min-height:100vh; padding:20px; }
+  h1 { text-align:center; color:#1e90ff; margin-bottom:20px; }
+  .botones { display:flex; gap:12px; margin-bottom:20px; justify-content:center; }
+  button { padding:10px 20px; border:none; border-radius:24px; font-weight:600; cursor:pointer; transition:0.25s; }
+  .btn-nuevo { background:#1e90ff; color:white; } .btn-nuevo:hover { background:#0077cc; }
+  .btn-ver { background:#28a745; color:white; } .btn-ver:hover { background:#218838; }
+  .intervencion-form { background: rgba(255,255,255,0.1); padding:20px; border-radius:16px; margin-bottom:20px; box-shadow:0 8px 20px rgba(0,0,0,0.35); backdrop-filter: blur(6px); }
+  .form-group { margin-bottom:12px; }
+  .form-group label { font-weight:600; display:block; margin-bottom:6px; }
+  .form-group input, .form-group textarea { width:100%; padding:8px 10px; border-radius:8px; border:none; font-size:14px; }
+  .pasos { margin-top:12px; }
+  .paso { background: rgba(255,255,255,0.05); padding:8px; border-radius:8px; margin-bottom:6px; }
+  .btn-accion { margin-top:10px; padding:10px 20px; border:none; border-radius:24px; font-weight:600; cursor:pointer; transition:0.25s; width:150px; margin-right:10px; }
+  .btn-guardar { background:#ffc107; color:black; } .btn-guardar:hover { background:#e0a800; }
+  .btn-cerrar { background:#dc3545; color:white; } .btn-cerrar:hover { background:#b02a37; }
+  .registro-item { background: rgba(255,255,255,0.08); padding:12px; border-radius:12px; margin-bottom:12px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<h1>Registro de Intervenciones</h1>
+
+<div class="botones">
+  <button class="btn-nuevo" id="nuevoBtn">Nueva Intervención</button>
+  <button class="btn-ver" id="verBtn">Ver Intervenciones Pasadas</button>
+</div>
+
+<div id="intervencionContainer"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPr8ZmxwYLyH1j8EygyMH78_4fAyu0xFo",
+  authDomain: "tsjcatrp.firebaseapp.com",
+  projectId: "tsjcatrp",
+  storageBucket: "tsjcatrp.firebasestorage.app",
+  messagingSenderId: "858193188422",
+  appId: "1:858193188422:web:3b5118e1022a44faad9c47"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+let currentUser=null;
+
+onAuthStateChanged(auth,user=>{
+  if(!user) window.location.href="/modulo_acceso/identificacion.jsp/pagina.html";
+  else currentUser=user;
+});
+
+const contenedor=document.getElementById("intervencionContainer");
+document.getElementById("nuevoBtn").addEventListener("click", ()=>{crearFormularioNueva()});
+document.getElementById("verBtn").addEventListener("click", ()=>{verIntervenciones()});
+
+function crearFormularioNueva(){
+  contenedor.innerHTML=generarFormularioHTML();
+  inicializarFormulario();
+}
+
+// Genera HTML del formulario
+function generarFormularioHTML(desc="", pasos=[], estado="en curso", numero=""){
+  return `
+    <div class="intervencion-form">
+      <div class="form-group">
+        <label>Número de Intervención</label>
+        <input type="text" id="numIntervencion" placeholder="Ingrese número" required value="${numero}" ${estado==="cerrada"?"readonly":""}>
+      </div>
+      <div class="form-group">
+        <label>Descripción inicial</label>
+        <textarea id="descripcionInicial" rows="3" ${estado==="cerrada"?"readonly":""}>${desc}</textarea>
+      </div>
+      <div class="pasos" id="pasosContainer"></div>
+      ${estado!=="cerrada"?`<button id="agregarPasoBtn">Agregar Paso</button>
+      <button class="btn-accion btn-guardar" id="guardarBtn">Guardar</button>
+      <button class="btn-accion btn-cerrar" id="cerrarBtn">Cerrar Investigación</button>`:""}
+      <button class="btn-accion btn-nuevo" id="volverBtn">Volver</button>
+      <div id="msg" style="margin-top:12px;"></div>
+    </div>
+  `;
+}
+
+// Inicializa los eventos del formulario
+function inicializarFormulario(){
+  const pasosContainer=document.getElementById("pasosContainer");
+  // Si hay pasos previos
+  const textareaPrevios=document.querySelectorAll(".pasoTexto");
+  textareaPrevios.forEach(t=>pasosContainer.appendChild(t.parentNode));
+
+  document.getElementById("agregarPasoBtn")?.addEventListener("click", ()=>{
+    const pasoCount=pasosContainer.children.length+1;
+    const div=document.createElement("div");
+    div.className="paso";
+    div.innerHTML=`<label>Paso ${pasoCount}</label><textarea rows="2" class="pasoTexto"></textarea>`;
+    pasosContainer.appendChild(div);
+  });
+
+  document.getElementById("guardarBtn")?.addEventListener("click", async ()=>{await guardarIntervencion(false)});
+  document.getElementById("cerrarBtn")?.addEventListener("click", async ()=>{await guardarIntervencion(true)});
+  document.getElementById("volverBtn")?.addEventListener("click", ()=>{verIntervenciones()});
+}
+
+// Guardar o cerrar
+async function guardarIntervencion(cerrar=false){
+  const num=document.getElementById("numIntervencion").value.trim();
+  const desc=document.getElementById("descripcionInicial").value.trim();
+  const pasos = Array.from(document.querySelectorAll(".pasoTexto")).map(t=>t.value.trim()).filter(t=>t);
+  const msg=document.getElementById("msg");
+
+  if(!num){ msg.textContent="Número de intervención obligatorio"; return; }
+
+  try{
+    const intervRef = doc(db,"intervenciones",num);
+    const docSnap = await getDoc(intervRef);
+
+    if(docSnap.exists()){
+      const actualData = docSnap.data();
+      if(actualData.estado==="cerrada"){ msg.textContent="Investigación cerrada, no se puede editar"; return; }
+      await updateDoc(intervRef,{
+        descripcionInicial: desc,
+        pasos: pasos,
+        estado: cerrar?"cerrada":"en curso",
+        fechaCierre: cerrar?new Date():actualData.fechaCierre || null
+      });
+    } else{
+      await setDoc(intervRef,{
+        numero: num,
+        descripcionInicial: desc,
+        pasos: pasos,
+        estado: cerrar?"cerrada":"en curso",
+        fechaCreacion: new Date(),
+        fechaCierre: cerrar?new Date():null
+      });
+    }
+
+    msg.textContent= cerrar ? "Investigación cerrada correctamente" : "Guardado correctamente. Puede retomar más tarde";
+
+  }catch(err){ console.error(err); msg.textContent="Error guardando"; }
+}
+
+// Ver intervenciones pasadas
+async function verIntervenciones(){
+  contenedor.innerHTML="";
+  const snap = await getDocs(collection(db,"intervenciones"));
+  snap.forEach(docu=>{
+    const data=docu.data();
+    const div=document.createElement("div");
+    div.className="registro-item";
+    div.textContent=`#${data.numero} - Estado: ${data.estado || "en curso"}`;
+    div.addEventListener("click", ()=>{mostrarDetalles(docu.id,data)});
+    contenedor.appendChild(div);
+  });
+}
+
+// Mostrar detalles y permitir edición si está en curso
+function mostrarDetalles(id,data){
+  contenedor.innerHTML=generarFormularioHTML(data.descripcionInicial, data.pasos || [], data.estado, data.numero);
+  const pasosContainer=document.getElementById("pasosContainer");
+  (data.pasos || []).forEach(p=>agregarPasoExistente(pasosContainer,p));
+  inicializarFormulario();
+}
+
+// Agregar pasos existentes
+function agregarPasoExistente(pasosContainer,texto){
+  const pasoCount=pasosContainer.children.length+1;
+  const div=document.createElement("div");
+  div.className="paso";
+  div.innerHTML=`<label>Paso ${pasoCount}</label><textarea rows="2" class="pasoTexto">${texto}</textarea>`;
+  pasosContainer.appendChild(div);
+}
+
+</script>
+</body>
+</html>
